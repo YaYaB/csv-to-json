@@ -1,0 +1,6 @@
+{
+    "goals": {"type": "TEST", "default": 0},
+    "goalsHalfTime": {"type": "float", "default":0},
+    "card_yellow": {"type": "float", "default":0},
+    "card_red": {"type": "float", "default":0}
+}
