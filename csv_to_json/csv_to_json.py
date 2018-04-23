@@ -44,8 +44,7 @@ def infer_type(x):
     str_to_types = [ast.literal_eval,
                     int,
                     float,
-                    lambda x: datetime.datetime.strptime(x, 
-                                                    "%Y-%m-%dT%H:%M:%S").strftime('%Y-%m-%dT%H:%M:%SZ')
+                    lambda x: dateutil.parser.parse(x).strftime('%Y-%m-%dT%H:%M:%SZ')
                    ]
     for f in str_to_types:
         try:
