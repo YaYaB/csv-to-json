@@ -7,6 +7,7 @@ import collections
 import copy
 import ast
 import datetime
+import dateutil.parser
 
 
 def get_args():
@@ -43,8 +44,7 @@ def infer_type(x):
     str_to_types = [ast.literal_eval,
                     int,
                     float,
-                    lambda x: datetime.datetime.strptime(x, 
-                                                    "%Y-%m-%dT%H:%M:%S").strftime('%Y-%m-%dT%H:%M:%SZ')
+                    lambda x: dateutil.parser.parse(x).strftime('%Y-%m-%dT%H:%M:%SZ')
                    ]
     for f in str_to_types:
         try:
@@ -137,7 +137,7 @@ def update_jstruct(jstruct, elem_struct, val, keep):
             print("  [ERR] Can not associate value ", val, "to field", elem_struct[0])
             jstruct[elem_struct[0]] = None
             pass
-    else:
+    else:  
         elem = elem_struct.pop(0)
         jstruct[elem] = update_jstruct(jstruct[elem], elem_struct, val, keep)
 
@@ -171,7 +171,6 @@ def create_json_example(row, header_csv, jstruct, delimiter, keep, dic_types):
                     row[key] = dic_types[key]['type'](row[key])              
                 except:
                     print("  [WARN] Can not parse ", row[key] , "to type", dic_types[key]['type'])
-            
         jstruct.update(update_jstruct(jstruct, key_struct, row[key], keep))
     
     return jstruct
@@ -197,7 +196,7 @@ def create_json_from_csv(csv_file, delimiter, cols_delimiter, keep, dic_types, i
     # Create structure of json
     print('  [INFO] Creating json\'s structure')
     jstruct = create_json_structure(header_csv, delimiter)
-    
+    print(jstruct)
     # Read csv line by line and create list of json
     print('  [INFO] Filling json')    
     js_content = []
@@ -252,7 +251,8 @@ def str_to_type(name_type):
     if name_type == 'list':
         return ast.literal_eval
     if name_type == 'date':
-        return lambda x: datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%S").strftime('%Y-%m-%dT%H:%M:%SZ')
+        return lambda x: dateutil.parser.parse(x).strftime('%Y-%m-%dT%H:%M:%SZ')
+
    
     return None
 
