@@ -163,8 +163,7 @@ def create_json_example(row, header_csv, jstruct, delimiter, keep, dic_types):
         key_struct = key.split(delimiter)
         if key in dic_types.keys():
             # if no value indicated set to default
-            if row[key] == '':
-                assert 'default' in dic_types[key].keys(), '  [ERR] No default value given for field ' + str(key)
+            if row[key] == '' and 'default' in dic_types[key].keys():
                 row[key] = dic_types[key]['default']
             else:
                 try:
