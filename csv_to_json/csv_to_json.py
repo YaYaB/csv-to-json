@@ -176,7 +176,7 @@ def create_json_example(row, header_csv, jstruct, delimiter, keep, dic_types):
     return jstruct
 
 
-def create_json_from_csv(csv_file, delimiter, cols_delimiter, keep, dic_types, infer_types):
+def create_json_from_csv(csv_file, delimiter, cols_delimiter, keep, dic_types, infer_types, max_docs, json_file, per_line):
     """
         Create one json for a whole csv
 
@@ -185,7 +185,10 @@ def create_json_from_csv(csv_file, delimiter, cols_delimiter, keep, dic_types, i
         :param cols_delimiter: delimiter of the columns in the csv
         :param keep: if true write None values instead of skipping them
         :param dic_types: dictionarry containing type and default value of each field
-        :param infer_types: if true, will try to infer_types of fields       
+        :param infer_types: if true, will try to infer_types of fields
+        :param max_docs: max documents to dump per json
+        :param json_file: path to output file wanted
+        :param per_line: if true, write one json per line (specific format)
         
         :return: json content
     """
@@ -202,36 +205,70 @@ def create_json_from_csv(csv_file, delimiter, cols_delimiter, keep, dic_types, i
     js_content = []
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f, delimiter=cols_delimiter)
+        i = 0
+        beg = True
+        end = True
+        # Prepare output file if dump in one file
+        if max_docs == -1 and not per_line:
+            beg = False
+            end = False
+            with open(json_file, 'w') as jsf:
+                jsf.write('[\n')
         for row in reader:
             if infer_types:
                 row = {x: infer_type(row[x]) for x in row}
             jexample = copy.deepcopy(jstruct)
             js_content.append(create_json_example(row, header_csv, jexample, delimiter, keep, dic_types))
-    
-    return js_content
+
+            i += 1
+            # Dump json in streaming
+            if (max_docs == -1) and ((i % 10000) == 0):
+                dump(json_file, js_content, max_docs, per_line, i // max_docs, beg, end)
+                js_content = []
+            elif (max_docs != -1) and (i % max_docs) == 0:
+                dump(json_file, js_content, max_docs, per_line, i // max_docs, beg, end)
+                js_content = []
+
+        # Dump last jsons
+        if js_content:
+            dump(json_file, js_content, max_docs, per_line, i // max_docs, beg, end)
+
+        # Complete output file if dump in one file
+        if max_docs == -1 and not per_line:
+            with open(json_file, 'a') as jsf:
+                jsf.write('\n]')
+
+    print('  [INFO] Json{} successfully created and dumped'.format('s' if (max_docs != -1) else ''))
+
+    return
 
 
-def dump_json(json_file, json_doc, per_line):
+def dump_json(json_file, json_doc, per_line, beg=True, end=True):
     """
         Dump a json in one file
 
         :param json_file: path to output file wanted
         :param json_doc: json document 
-        :param per_line: if true, write one json per line (specific format)   
+        :param per_line: if true, write one json per line (specific format)
+        :param beg: Add opening array
+        :param end: Add ending array
+
         
     """
 
-    with open(json_file, 'w') as jsf:
+    with open(json_file, 'a') as jsf:
         if  per_line:
             jsf.write(
                 '\n'.join(json.dumps(i) for i in json_doc)
             )
         else:
-            jsf.write('[\n')            
+            if beg:
+                jsf.write('[\n')
             jsf.write(
                 ',\n'.join(json.dumps(i) for i in json_doc)
             )
-            jsf.write('\n]') 
+            if end:
+                jsf.write('\n]')
 
 
 def str_to_type(name_type):
@@ -291,6 +328,27 @@ def read_config(config):
     return dic_types
 
 
+def dump(json_file, json_doc, max_docs, per_line, suffix=None, beg=False, end=False):
+    """
+        :param json_file: path to output file wanted
+        :param json_doc: json document
+        :param max_docs: max doc per file
+        :param per_line: if true, write one json per line (specific format)
+        :param suffix: Add opening array
+        :param beg: Add opening array
+        :param end: Add ending array
+    """
+    # Dump json into one file
+    if max_docs == -1:
+        dump_json(json_file, json_doc, per_line, beg, end)
+
+    # Dump json into several files
+    else:
+        base_name = '.'.join(json_file.split('.')[:-1])
+        dump_json(base_name + '_' + str(suffix) + '.json', json_doc, per_line, beg, end)
+
+
+
 def main():
     """
         Main function of the program
@@ -317,26 +375,8 @@ def main():
         dic_types = {}
         
     # Create json
-    json_doc = create_json_from_csv(args.csv, args.delimiter, args.cols_delimiter, args.keep, dic_types, args.infer_types)
+    create_json_from_csv(args.csv, args.delimiter, args.cols_delimiter, args.keep, dic_types, args.infer_types, args.max_docs, args.json, args.per_line)
 
-    # Dump json into one file
-    if args.max_docs == -1:
-        dump_json(args.json, json_doc, args.per_line)
-
-    # Dump json into several files
-    else:
-        base_name = '.'.join(args.json.split('.')[:-1])
-        suf = 0
-        while True:
-            json_part = json_doc[:args.max_docs]
-            dump_json(base_name + '_' + str(suf) + '.json', json_part, args.per_line)
-
-            del json_doc[:args.max_docs]
-            suf += 1
-
-            if not json_doc:
-                break
-    print('  [INFO] Json{} successfully created and dumped'.format('s' if (args.max_docs != -1) else ''))
     return 0
 
 
