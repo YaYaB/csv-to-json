@@ -259,7 +259,7 @@ def dump_json(json_file, json_doc, per_line, beg=True, end=True):
     with open(json_file, 'a') as jsf:
         if  per_line:
             jsf.write(
-                '\n'.join(json.dumps(i) for i in json_doc)
+                '\n'.join(json.dumps(i) for i in json_doc) + '\n'
             )
         else:
             if beg:
