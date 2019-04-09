@@ -284,7 +284,7 @@ def str_to_type(name_type):
     if name_type == 'bool':
         return bool
     if name_type == 'int':
-        return int
+        return lambda x: int(float(x))
     if name_type == 'list':
         return ast.literal_eval
     if name_type == 'date':
