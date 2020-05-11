@@ -231,12 +231,7 @@ def create_json_from_csv(csv_file, delimiter, cols_delimiter, keep, dic_types, i
 
         # Dump last jsons
         if js_content:
-            dump(json_file, js_content, max_docs, per_line, i // max_docs, beg, end)
-
-        # Complete output file if dump in one file
-        if max_docs == -1 and not per_line:
-            with open(json_file, 'a') as jsf:
-                jsf.write('\n]')
+            dump(json_file, js_content, max_docs, per_line, i // max_docs, beg, True)
 
     print('  [INFO] Json{} successfully created and dumped'.format('s' if (max_docs != -1) else ''))
 
@@ -269,6 +264,8 @@ def dump_json(json_file, json_doc, per_line, beg=True, end=True):
             )
             if end:
                 jsf.write('\n]')
+            else:
+                jsf.write(',\n')
 
 
 def str_to_type(name_type):
